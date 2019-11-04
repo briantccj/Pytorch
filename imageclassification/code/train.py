@@ -3,13 +3,14 @@ import torch.utils.data
 import torch.nn as nn
 import torch.optim as optim
 
+from matplotlib import pyplot as plt 
+
 from dataset import dataset
 from sklearn.model_selection import train_test_split
 import torchvision.transforms as transforms
 
 from models.multiscale_resnet import multiscale_resnet
 from utils.train_utils import *
-
 from dataset.data_aug import *
 
 
@@ -47,18 +48,34 @@ if __name__ == '__main__':
     model = torch.nn.DataParallel(model)
     model.to(device)
     lossfunc = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters() , lr = 0.1, momentum=0.9)
-    epochs = 10
+    optimizer = torch.optim.SGD(model.parameters() , lr = 0.01, momentum=0.9)
+    epochs = 15
     best_vaild_loss = float('inf')
-    print(best_vaild_loss)
 
+    plt_epoch = []
+    plt_acc = []
+    plt_loss = []
     for epoch in range(epochs):
         
         train_loss, train_acc = train(data_loader["train"], lossfunc, optimizer, model, device)
         val_loss, val_acc = evaluate(data_loader["val"], lossfunc, model, device)
 
+        plt_epoch.append(epoch + 1) 
+        plt_acc.append(val_acc)
+        plt_loss.append(train_loss)
         if val_loss < best_vaild_loss:
             best_vaild_loss = val_loss
             torch.save(model, "./model.pt")
 
         print('Epoch:{0}|Train Loss:{1}|Train Acc:{2}|Val Loss:{3}|Val Acc:{4}'.format(epoch+1,train_loss,train_acc,val_loss,val_acc))
+    plt.xlabel("epoch")
+    plt.ylabel("loss")
+    plt.plot(plt_epoch, plt_loss)
+    plt.savefig("./loss.png")
+
+    plt.close()
+
+    plt.xlabel("epoch")
+    plt.ylabel("acc")
+    plt.plot(plt_epoch, plt_acc)
+    plt.savefig("./acc.png")
